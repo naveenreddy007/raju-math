@@ -1,93 +1,164 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useInView } from 'framer-motion';
-import { mathAnimations } from '@/lib/math-theme';
+import { useEffect, useState, useRef } from 'react';
+import { mathSymbols, mathEquations } from '@/lib/math-theme';
 
-export function useMathAnimation(
-  ref: React.RefObject<Element>,
-  animationType: keyof typeof mathAnimations = 'float'
-) {
-  const isInView = useInView(ref, { once: true });
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-
-  useEffect(() => {
-    if (isInView) {
-      setShouldAnimate(true);
-    }
-  }, [isInView]);
-
-  return {
-    isInView,
-    shouldAnimate,
-    animation: mathAnimations[animationType],
-  };
-}
-
-export function useRandomMathSymbol() {
-  const [symbol, setSymbol] = useState('π');
-  
-  useEffect(() => {
-    const symbols = ['∑', '∫', '∂', '∆', '∇', '∞', 'π', 'θ', 'α', 'β', 'γ', 'λ'];
-    const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-    setSymbol(randomSymbol);
-  }, []);
-
-  const getNewSymbol = () => {
-    const symbols = ['∑', '∫', '∂', '∆', '∇', '∞', 'π', 'θ', 'α', 'β', 'γ', 'λ'];
-    const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-    setSymbol(randomSymbol);
-  };
-
-  return { symbol, getNewSymbol };
-}
-
-export function useFloatingElements(count: number = 20) {
-  const [elements, setElements] = useState<Array<{
+// Hook for managing floating mathematical symbols
+export const useMathAnimation = () => {
+  const [symbols, setSymbols] = useState<Array<{
     id: string;
+    symbol: string;
     x: number;
     y: number;
-    symbol: string;
     delay: number;
     duration: number;
   }>>([]);
 
   useEffect(() => {
-    const symbols = ['∑', '∫', '∂', '∆', '∇', '∞', 'π', 'θ', 'α', 'β', 'γ', 'λ', '√', '±'];
-    const newElements = Array.from({ length: count }, (_, i) => ({
-      id: `floating-${i}`,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      symbol: symbols[Math.floor(Math.random() * symbols.length)],
-      delay: Math.random() * 2,
-      duration: 3 + Math.random() * 2,
-    }));
-    
-    setElements(newElements);
-  }, [count]);
+    const generateSymbols = () => {
+      const newSymbols = Array.from({ length: 20 }, (_, i) => ({
+        id: `symbol-${i}`,
+        symbol: mathSymbols[Math.floor(Math.random() * mathSymbols.length)],
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        delay: Math.random() * 5,
+        duration: 3 + Math.random() * 4,
+      }));
+      setSymbols(newSymbols);
+    };
 
-  return elements;
-}
+    generateSymbols();
+  }, []);
 
-export function useMathTheme() {
-  const [isDark, setIsDark] = useState(true);
+  return { symbols };
+};
 
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
+// Hook for typewriter effect
+export const useTypewriter = (text: string, speed: number = 100) => {
+  const [displayText, setDisplayText] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    if (!text) return;
+
+    let index = 0;
+    setDisplayText('');
+    setIsComplete(false);
+
+    const timer = setInterval(() => {
+      if (index < text.length) {
+        setDisplayText(text.slice(0, index + 1));
+        index++;
+      } else {
+        setIsComplete(true);
+        clearInterval(timer);
+      }
+    }, speed);
+
+    return () => clearInterval(timer);
+  }, [text, speed]);
+
+  return { displayText, isComplete };
+};
+
+// Hook for mathematical equation cycling
+export const useMathEquations = (interval: number = 3000) => {
+  const [currentEquation, setCurrentEquation] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIsVisible(false);
+      
+      setTimeout(() => {
+        setCurrentEquation((prev) => (prev + 1) % mathEquations.length);
+        setIsVisible(true);
+      }, 300);
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [interval]);
+
+  return { 
+    equation: mathEquations[currentEquation], 
+    isVisible,
+    currentIndex: currentEquation 
   };
+};
 
-  return {
-    isDark,
-    toggleTheme,
-    theme: {
-      primary: 'hsl(217, 91%, 60%)',
-      secondary: 'hsl(217, 91%, 70%)',
-      accent: 'hsl(188, 100%, 44%)',
-      background: 'hsl(220, 27%, 6%)',
-      foreground: 'hsl(210, 40%, 95%)',
-    },
-  };
-}
+// Hook for scroll-based animations
+export const useScrollAnimation = () => {
+  const [scrollY, setScrollY] = useState(0);
+  const [isScrolling, setIsScrolling] = useState(false);
 
-export default useMathAnimation;
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+      setIsScrolling(true);
+
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsScrolling(false);
+      }, 150);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
+  return { scrollY, isScrolling };
+};
+
+// Hook for mouse position tracking
+export const useMousePosition = () => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth) * 2 - 1,
+        y: -(e.clientY / window.innerHeight) * 2 + 1,
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  return mousePosition;
+};
+
+// Hook for intersection observer
+export const useIntersectionObserver = (
+  threshold: number = 0.1,
+  rootMargin: string = '0px'
+) => {
+  const [isIntersecting, setIsIntersecting] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsIntersecting(entry.isIntersecting);
+      },
+      { threshold, rootMargin }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, [threshold, rootMargin]);
+
+  return { ref, isIntersecting };
+};

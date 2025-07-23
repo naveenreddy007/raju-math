@@ -12,6 +12,7 @@ interface MathCardProps {
   glowing?: boolean;
   delay?: number;
   icon?: React.ReactNode;
+  onClick?: () => void;
 }
 
 export function MathCard({ 
@@ -21,7 +22,8 @@ export function MathCard({
   className, 
   glowing = false,
   delay = 0,
-  icon 
+  icon,
+  onClick
 }: MathCardProps) {
   return (
     <motion.div
@@ -33,8 +35,10 @@ export function MathCard({
         scale: 1.02,
         transition: { duration: 0.2 }
       }}
+      onClick={onClick}
       className={cn(
         'group',
+        onClick && 'cursor-pointer',
         glowing && 'hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]',
         className
       )}
